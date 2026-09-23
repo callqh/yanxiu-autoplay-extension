@@ -267,6 +267,11 @@
   }
 
   function findRatingChoices(wrapper) {
+    const rateItems = [...wrapper.querySelectorAll(".info-rate .rate-item")].filter(
+      isVisible,
+    );
+    if (rateItems.length >= 5) return rateItems;
+
     const exactStars = [...wrapper.querySelectorAll(".ivu-rate-star")].filter(
       isVisible,
     );
@@ -329,6 +334,8 @@
       ) {
         state.ratedAt = 0;
         setStatus("评分控件尚未响应，正在重试");
+      } else if (disabled && state.ratingAttempts >= 3) {
+        setStatus("自动评分未生效，请手动选择星级并提交");
       }
     }
 

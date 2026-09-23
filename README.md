@@ -41,7 +41,7 @@
 ## 已针对的生产页面结构
 
 - 评分弹窗：`.scoring-wrapper`
-- 星级控件：`.ivu-rate-star`
+- 星级控件：`.info-rate .rate-item`（兼容旧版 `.ivu-rate-star`）
 - 结束遮罩：`.ended-mask`
 - 下一节入口：`.ended-mask .next`
 
