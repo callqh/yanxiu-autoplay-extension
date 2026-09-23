@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "研修网自动连播",
+  "version": "1.2.0",
+  "description": "自动播放研修网课程、完成评分弹窗并连续观看下一节和下一门课程。",
+  "permissions": ["storage", "activeTab"],
+  "host_permissions": ["*://ipx.yanxiu.com/*"],
+  "action": {
+    "default_title": "研修网自动连播",
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://ipx.yanxiu.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

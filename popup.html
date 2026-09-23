@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>研修网自动连播</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main>
+      <header>
+        <div>
+          <h1>研修网自动连播</h1>
+        </div>
+        <label class="switch" aria-label="总开关">
+          <input id="enabled" type="checkbox" />
+          <span></span>
+        </label>
+      </header>
+
+      <section class="status-card">
+        <span class="status-dot"></span>
+        <div>
+          <p class="status-label">当前状态</p>
+          <p id="status">正在连接课程页面…</p>
+        </div>
+      </section>
+
+      <section class="settings">
+        <label class="row">
+          <span>
+            <strong>自动播放</strong>
+            <small>课程暂停后尝试恢复</small>
+          </span>
+          <input id="autoPlay" type="checkbox" />
+        </label>
+
+        <label class="row">
+          <span>
+            <strong>自动评分并提交</strong>
+            <small>评分弹窗出现时处理</small>
+          </span>
+          <input id="autoRate" type="checkbox" />
+        </label>
+
+        <label class="rating-row">
+          <span>
+            <strong>评分</strong>
+            <small>选择自动提交的星级</small>
+          </span>
+          <select id="rating" aria-label="评分星级">
+            <option value="5">5 星</option>
+            <option value="4">4 星</option>
+            <option value="3">3 星</option>
+            <option value="2">2 星</option>
+            <option value="1">1 星</option>
+          </select>
+        </label>
+
+        <label class="row">
+          <span>
+            <strong>自动下一节 / 下一门</strong>
+            <small>课件或整门课程结束后切换</small>
+          </span>
+          <input id="autoNext" type="checkbox" />
+        </label>
+      </section>
+
+      <p class="footnote">有声自动播放被拦截时会改为静音播放；如需声音，请手动开启。答题、滑块等验证仍需手动处理。</p>
+    </main>
+    <script src="popup.js"></script>
+  </body>
+</html>
