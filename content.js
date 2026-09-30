@@ -31,6 +31,7 @@
   const endedStates = new WeakMap();
   const playStates = new WeakMap();
   const crossCourseAttempts = new WeakSet();
+  const documentStates = new WeakMap();
 
   function setStatus(action) {
     lastStatus = { action, at: Date.now() };
@@ -289,6 +290,9 @@
   }
 
   function handleScoreDialog() {
+    for (const wrapper of document.querySelectorAll(SCORE_SELECTOR)) {
+      if (!isVisible(wrapper)) scoreStates.delete(wrapper);
+    }
     if (!settings.autoRate) return false;
 
     const wrapper = visibleElement(SCORE_SELECTOR);
@@ -305,7 +309,7 @@
       const rating = Math.min(5, Math.max(1, Number(settings.rating) || 5));
       const target = choices[rating - 1];
 
-      if (target && safeClick(target)) {
+      if (target && selectRating(target)) {
         state.ratedAt = Date.now();
         state.ratingAttempts += 1;
         setStatus(`已选择 ${rating} 星评分`);
@@ -341,6 +345,81 @@
 
     return true;
   }
+
+  function selectRating(star) {
+    if (!isVisible(star)) return false;
+    const icon = star.querySelector?.(".rate-icon") || star;
+    if (typeof icon.getBoundingClientRect === "function") {
+      const rect = icon.getBoundingClientRect();
+      // The site's half-star widget reads hover position before handling click.
+      icon.dispatchEvent(new MouseEvent("mousemove", {
+        bubbles: true,
+        clientX: rect.left + rect.width * 0.85,
+        clientY: rect.top + rect.height * 0.5,
+      }));
+    }
+    return safeClick(star);
+  }
+
+  function previewFrames() {
+    return [...document.querySelectorAll(".player-wrapper .iframe-wrapper iframe")]
+      .filter((frame) => {
+        try {
+          return isVisible(frame) && new URL(frame.src).hostname === "preview.yanxiu.com";
+        } catch (_error) {
+          return false;
+        }
+      });
+  }
+
+  function handleDocumentCourseware() {
+    const frames = previewFrames();
+    if (!frames.length) return;
+    const paused = !settings.enabled || !settings.autoNext || hasBlockingDialog();
+
+    for (const frame of frames) {
+      frame.contentWindow?.postMessage({ type: "YANXIU_PREVIEW_CONTROL", paused }, new URL(frame.src).origin);
+      const state = documentStates.get(frame);
+      if (paused || !state?.complete || state.url !== frame.src) continue;
+
+      const items = [...document.querySelectorAll(".resource-list .res-item")];
+      const index = items.findIndex((item) => item.classList.contains("active"));
+      if (index < 0) {
+        setStatus("课件已到底，无法识别当前目录项");
+        continue;
+      }
+      const active = items[index];
+      if (state.active && state.active !== active) continue;
+      state.active = active;
+      if (state.attempts >= 3 || (state.lastClickAt && Date.now() - state.lastClickAt < NEXT_RETRY_MS)) continue;
+
+      const next = items[index + 1]?.querySelector(".res-name");
+      if (next && safeClick(next)) {
+        state.attempts += 1;
+        state.lastClickAt = Date.now();
+        setStatus(`课件已到底，正在切换：${normalizedText(next)}`);
+      } else if (!items[index + 1] && !state.courseAttempted) {
+        state.courseAttempted = true;
+        void continueToNextCourse();
+      }
+    }
+  }
+
+  window.addEventListener("message", (event) => {
+    if (event.data?.type !== "YANXIU_PREVIEW_PROGRESS") return;
+    const frame = previewFrames().find((item) => item.contentWindow === event.source);
+    if (!frame || event.origin !== new URL(frame.src).origin || event.data.url !== frame.src) return;
+    let state = documentStates.get(frame);
+    if (!state || state.url !== frame.src) {
+      state = { url: frame.src, complete: false, attempts: 0, lastClickAt: 0 };
+      documentStates.set(frame, state);
+    }
+    state.complete = event.data.complete === true;
+    if (settings.enabled && settings.autoNext && !state.complete) {
+      setStatus(`正在滚动课件：${Number(event.data.page) || 0}/${Number(event.data.total) || 0} 页`);
+    }
+    scheduleScan();
+  });
 
   function handleEndedScreen() {
     const masks = [...document.querySelectorAll(ENDED_SELECTOR)];
@@ -443,7 +522,10 @@
 
   function scan() {
     scanTimer = null;
-    if (!settings.enabled) return;
+    if (!settings.enabled) {
+      handleDocumentCourseware();
+      return;
+    }
 
     const scoringVisible = handleScoreDialog();
     const endedVisible = handleEndedScreen();
@@ -451,6 +533,7 @@
     if (!scoringVisible && !endedVisible) {
       handleMediaPlayback();
     }
+    handleDocumentCourseware();
   }
 
   function scheduleScan() {
@@ -479,6 +562,7 @@
         pageSupported: true,
         settings,
         status: lastStatus,
+        version: "1.3.0",
       });
     }
   });

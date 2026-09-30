@@ -11,6 +11,9 @@ const DEFAULTS = {
 const ids = Object.keys(DEFAULTS);
 const elements = Object.fromEntries(ids.map((id) => [id, document.getElementById(id)]));
 const statusElement = document.getElementById("status");
+const versionElement = document.getElementById("version");
+const extensionVersion = chrome.runtime.getManifest().version;
+versionElement.textContent = `扩展 v${extensionVersion}`;
 
 function renderEnabledState(enabled) {
   document.body.classList.toggle("is-disabled", !enabled);
@@ -46,11 +49,18 @@ chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
     return;
   }
 
-  chrome.tabs.sendMessage(tab.id, { type: "YANXIU_GET_STATUS" }, (response) => {
-    if (chrome.runtime.lastError || !response?.ok) {
-      statusElement.textContent = "刷新课程页面后即可启用";
-      return;
-    }
-    statusElement.textContent = response.status?.action || "已连接课程页面";
-  });
+  function readStatus() {
+    chrome.tabs.sendMessage(tab.id, { type: "YANXIU_GET_STATUS" }, (response) => {
+      if (chrome.runtime.lastError || !response?.ok) {
+        statusElement.textContent = "刷新课程页面后即可启用";
+        return;
+      }
+      statusElement.textContent = response.status?.action || "已连接课程页面";
+      versionElement.textContent = response.version === extensionVersion
+        ? `扩展与页面 v${extensionVersion}`
+        : `扩展 v${extensionVersion} · 页面 ${response.version || "旧版本"}，请刷新课程页`;
+    });
+  }
+  readStatus();
+  window.setInterval(readStatus, 1000);
 });
